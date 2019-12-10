@@ -6,8 +6,9 @@ const accBtn = document.getElementById('nav-btn-accessories');
 const searchInput = document.getElementById('search-input');
 const searchPanel = document.getElementsByClassName('search-panel')[0];
 const headerTool = document.getElementsByClassName('header-tools-mini')[0];
-let nextPage = null;
+let nextPage = undefined;
 let currentCategory = '';
+let isLoading = false;
 
 // GET Product List
 
@@ -24,10 +25,6 @@ const getProductList = (category, page, callback) => {
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
         callback(xhr.responseText);
-      } else if (xhr.status === 400) {
-        getProductList(currentCategory, 0, response => {
-          render(response);
-        });
       } else {
         alert(`[${xhr.status}] ${xhr.statusText}`);
       }
@@ -41,11 +38,7 @@ const getProductList = (category, page, callback) => {
 const render = data => {
   const dataObj = JSON.parse(data).data;
   //assign Next Page
-  if (JSON.parse(data).next_paging !== undefined) {
-    nextPage = JSON.parse(data).next_paging;
-  } else {
-    nextPage = null;
-  }
+  nextPage = JSON.parse(data).next_paging;
 
   Object.values(dataObj).forEach(item => {
     let productDiv = document.createElement('div');
@@ -160,18 +153,22 @@ searchInput.addEventListener('click', () => {
 
 //Scroll to Next Page (Infinite Scroll)
 
-let isLoading = false;
-
 window.addEventListener('scroll', () => {
   if (
-    document.documentElement.scrollTop + window.innerHeight + 61 >=
+    // 1. condition for loading next page
+    document.documentElement.scrollTop + window.innerHeight + 60 >=
       document.body.offsetHeight &&
-    nextPage !== null &&
+    nextPage !== undefined &&
     isLoading === false
   ) {
     isLoading = true;
+    // 2. Parameters required to get & render next page
+    // - Current Category viewed by user
+    // - What is the next page?
     getProductList(currentCategory, nextPage, response => {
       render(response);
     });
   }
 });
+// 3. Prevent duplicate request caused by user action
+// -isLoading
